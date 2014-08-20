@@ -1,0 +1,38 @@
+---
+title: "dataset_creation"
+author: "devin"
+date: "Tuesday, August 19, 2014"
+output: html_document
+---
+
+```{r interactive, include=FALSE}
+setwd(paste0(getwd(), "/lab-notebook"))
+```
+
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+observations <- data.frame(expand.grid(ID = 1, 
+                                       TIME = c(0.25, 1, 1.5, 2, 
+                                                seq(3, 15, 3), 18, 24, 36, 48), 
+                                       DV = 0, MDV = 0, AMT = 0, DOSE = 1000))
+observations <- observations[order(with(observations, ID, TIME)),]
+
+dosing <- filter(observations, !duplicated(ID)) %>% 
+  transform(TIME = 0, MDV = 1, AMT = DOSE) %>% 
+  arrange(ID)
+```
+
+```{r}
+nm_dat <- rbind(observations, dosing) %>% arrange(ID, TIME)
+```
+
+```{r}
+write.csv(nm_dat, "../data/simulation_dat.csv", quote = FALSE, row.names = FALSE)
+```
+
+
+
