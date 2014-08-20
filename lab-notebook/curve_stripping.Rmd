@@ -5,13 +5,23 @@ date: "August 19, 2014"
 output: html_document
 ---
 
+
+```{r interactive, include=FALSE}
+setwd(paste0(getwd(), "/lab-notebook"))
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
 ```{r}
 dat <- read.table("../modeling//singleid_sim.dat", skip = 1, header = T)
 
 ```
 
 ```{r}
-library(ggplot2)
 qplot(data=dat, x = TIME, y = PRED) + scale_y_log10()
 ```
 
