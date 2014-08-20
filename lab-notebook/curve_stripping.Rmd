@@ -1,0 +1,83 @@
+---
+title: "curve_stripping"
+author: "Devin"
+date: "August 19, 2014"
+output: html_document
+---
+
+```{r}
+dat <- read.table("../modeling//singleid_sim.dat", skip = 1, header = T)
+
+```
+
+```{r}
+library(ggplot2)
+qplot(data=dat, x = TIME, y = PRED) + scale_y_log10()
+```
+
+
+## Curve stripping flow
+
+* get cmax and filter all times before
+* fit linear model through log transformed data to get terminal slope
+* subtract predicted values from terminal portion from observed values to get portion remainder that corresponds to distribution portion
+* fit second line through the part corresponding to distribution portion to calculate rate constant alpha
+
+* convert A, B $\alpha$ and $\beta$ to physiologic parameter versions
+
+
+```{r}
+time<- dat$TIME
+  conc <- dat$DV
+  
+  time.points <- length(time)
+  #check to make sure partial time legit option
+  ###need to add warning
+last_points <- 5
+  last <- last_points
+  start<- time.points - last + 1
+
+
+    t<-time[start:time.points]
+    con <- conc[start:time.points]
+    xt <-lm(log(con)~t) # log-linear terminal phase calculation for k
+    lambda_z<- as.numeric(xt$coef[2])
+
+predicted_terminal_portion <- exp(predict(xt, data.frame(t = time)))
+remaining_alpha_conc <- conc- predicted_terminal_portion
+
+alpha_index <- 4:9
+alpha_conc <- remaining_alpha_conc[alpha_index]
+alpha_t <- time[alpha_index]
+alpha_xt <- lm(log(alpha_conc)~alpha_t)
+
+A <- exp(unlist(alpha_xt$coef[1]))
+B <- exp(unlist(xt$coef[1]))
+alpha <- -as.numeric(unlist(alpha_xt$coef[2]))
+beta <- -as.numeric(unlist(xt$coef[2]))
+```
+
+for calculations see boomer
+
+http://www.boomer.org/c/p4/c19/c19.pdf
+
+```{r}
+DOSE <- 1000
+k21 <- (A*beta + B*alpha)/(A+B)
+kel <- alpha*beta/k21
+k12 <- alpha + beta - k21 - kel
+
+Vc <- DOSE/max(conc)
+Vp <-  k12/k21*Vc
+Q <- k12*Vc
+CL <- kel*Vc
+
+initial_estimates <- data.frame("Vc" = Vc, "Vp" = Vp, "Q" = Q, "CL" = CL)
+row.names(initial_estimates) <- NULL
+round(initial_estimates, 2)
+dat %>% do(data.frame(AUC_inf(.$TIME, .$DV, AUCinf_only = F)))
+```
+
+
+
+
